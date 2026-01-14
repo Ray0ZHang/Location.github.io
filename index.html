@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>位置检测跳转</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        #gpsBtn {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #gpsBtn:disabled { background-color: #ccc; }
+        #status { margin-top: 20px; color: #555; } 
+    </style>
+    
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: 'YOUR_SECURITY_CODE', // 如果是开发环境，可能需要配合安全密钥
+        }
+    </script>
+    <script src="https://webapi.amap.com/maps?v=2.0&key=ed95f8505089397c65f382e0b01f5291&plugin=AMap.Geocoder,AMap.Geolocation"></script>
+</head>
+<body>
+
+    <h2>欢迎访问</h2>
+    <p>请授权获取您的位置以提供定制服务</p>
+    
+    <button id="gpsBtn">获取并验证位置</button>
+    <div id="status"></div>
+
+    <script>
+        const btn = document.getElementById('gpsBtn');
+        const statusDiv = document.getElementById('status');
+
+        btn.onclick = function() {
+            statusDiv.innerHTML = "正在定位中，请稍候...";
+            btn.disabled = true; // 防止重复点击
+
+            // 1. 使用高德地图的定位插件
+            AMap.plugin('AMap.Geolocation', function() {
+                var geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true, // 是否使用高德定位，默认:true
+                    timeout: 10000,           // 超过10秒后停止定位
+                });
+
+                geolocation.getCurrentPosition(function(status, result) {
+                    if (status == 'complete') {
+                        onLocateSuccess(result);
+                    } else {
+                        onError(result);
+                    }
+                });
+            });
+        }
+
+        // 定位成功后的处理
+        function onLocateSuccess(data) {
+            // data.position 包含经纬度
+            // data.addressComponent 包含详细的行政区划信息 (这是高德API的优势)
+            
+            console.log("定位信息：", data);
+            
+            // 获取区/县信息
+            const district = data.addressComponent.district; 
+            const city = data.addressComponent.city;
+
+            statusDiv.innerHTML = `定位成功！您位于：${city} ${district}`;
+
+            // 2. 核心跳转逻辑
+            setTimeout(() => {
+                if (city.includes("广州") && district.includes("天河")) {
+                    // 情况 A：在广州天河区
+                    window.location.href = "tianhe_page.html"; 
+                } else {
+                    // 情况 B：在其他地方
+                    window.location.href = "other_page.html"; 
+                }
+            }, 1000); // 延迟1秒跳转，让用户看清定位结果
+        }
+
+        // 定位失败的处理
+        function onError(data) {
+            statusDiv.innerHTML = "定位失败，请检查手机GPS是否开启，并允许网页访问位置。<br>错误信息: " + data.message;
+            btn.disabled = false;
+        }
+    </script>
+</body>
+</html>
